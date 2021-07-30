@@ -12,5 +12,5 @@ usdt:./src/bitcoind:validation:mempool_loaded
   $expired = (int64) arg2;
   $already_there = (int64) arg3;
   $unbroadcast = (int64) arg4;
-  printf("Succeeded: %d Failed: %d Expiired: %d Already: %d Waiting: %d\n", $count, $failed, $expired, $already_there, $unbroadcast);
+  printf("Succeeded: %d Failed: %d Expired: %d Already: %d Waiting: %d\n", $count, $failed, $expired, $already_there, $unbroadcast);
 }
