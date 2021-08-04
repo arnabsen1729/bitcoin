@@ -2168,18 +2168,20 @@ bool CChainState::FlushStateToDisk(
             if (fDoFullFlush && !CoinsTip().GetBestBlock().IsNull()) {
                 LOG_TIME_SECONDS(strprintf("write coins cache to disk (%d coins, %.2fkB)",
                                            coins_count, coins_mem_usage / 1000));
-
                 // Typical Coin structures on disk are around 48 bytes in size.
                 // Pushing a new one to the database can cause it to be written
                 // twice (once in the log, and once in the tables). This is already
                 // an overestimation, as most will delete an existing entry or
                 // overwrite one. Still, use a conservative safety factor of 2.
+
+
                 if (!CheckDiskSpace(gArgs.GetDataDirNet(), 48 * 2 * 2 * CoinsTip().GetCacheSize())) {
                     return AbortNode(state, "Disk space is too low!", _("Disk space is too low!"));
                 }
                 // Flush the chainstate (which may refer to block index entries).
                 if (!CoinsTip().Flush())
                     return AbortNode(state, "Failed to write to coin database");
+                TRACE5(validation, flush_coins, nLastFlush.count(), mode, coins_count, coins_mem_usage, fs::space(gArgs.GetDataDirNet()).available);
                 nLastFlush = nNow;
                 full_flush_completed = true;
             }
@@ -2264,7 +2266,9 @@ static void UpdateTip(CTxMemPool& mempool, const CBlockIndex* pindexNew, const C
               pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
               log(pindexNew->nChainWork.getdouble()) / log(2.0), (unsigned long)pindexNew->nChainTx,
               FormatISO8601DateTime(pindexNew->GetBlockTime()),
-              GuessVerificationProgress(chainParams.TxData(), pindexNew), active_chainstate.CoinsTip().DynamicMemoryUsage() * (1.0 / (1 << 20)), active_chainstate.CoinsTip().GetCacheSize(),
+              GuessVerificationProgress(chainParams.TxData(), pindexNew),
+              active_chainstate.CoinsTip().DynamicMemoryUsage() * (1.0 / (1 << 20)),
+              active_chainstate.CoinsTip().GetCacheSize(),
               !warning_messages.empty() ? strprintf(" warning='%s'", warning_messages.original) : "");
 }
 
