@@ -1,0 +1,16 @@
+#!/usr/bin/env bpftrace
+
+BEGIN
+{
+  printf("Coins cached to disk. Ctrl-C to end...\n");
+  printf("Flush State modes:\n");
+  printf(" 1: NONE\n 2: IF_NEEDED\n 3: PERIODIC\n 4: ALWAYS\n\n");
+}
+
+usdt:./src/bitcoind:validation:flush_coins
+{
+  $mode = (uint16) arg1;
+  $coins = (uint32) arg2;
+  $coins_mem_usage = (uint64) arg3;
+  printf("Mode: %d\tCoins: %d\tCoins Mem: %d kB\n", $mode, $coins, $coins_mem_usage);
+}
