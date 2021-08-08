@@ -7,6 +7,7 @@
 #include <consensus/consensus.h>
 #include <logging.h>
 #include <random.h>
+#include <util/trace.h>
 #include <version.h>
 
 bool CCoinsView::GetCoin(const COutPoint &outpoint, Coin &coin) const { return false; }
@@ -92,9 +93,14 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
         // DIRTY, then it can be marked FRESH.
         fresh = !(it->second.flags & CCoinsCacheEntry::DIRTY);
     }
+
     it->second.coin = std::move(coin);
     it->second.flags |= CCoinsCacheEntry::DIRTY | (fresh ? CCoinsCacheEntry::FRESH : 0);
     cachedCoinsUsage += it->second.coin.DynamicMemoryUsage();
+    uint32_t _nHeight = coin.nHeight;
+    int64_t _nValue = coin.out.nValue;
+    uint _fCoinBase = coin.fCoinBase;
+    TRACE4(coins, addCoin, _nHeight, _nValue, _fCoinBase, cachedCoinsUsage);
 }
 
 void CCoinsViewCache::EmplaceCoinInternalDANGER(COutPoint&& outpoint, Coin&& coin) {
@@ -120,6 +126,14 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
+
+    uint32_t _nHeight = it->second.coin.nHeight;
+    int64_t _nValue = it->second.coin.out.nValue;
+    uint _fCoinBase = it->second.coin.fCoinBase;
+
+    TRACE4(coins, spendCoin, _nHeight, _nValue, _fCoinBase, cachedCoinsUsage);
+
+
     if (moveout) {
         *moveout = std::move(it->second.coin);
     }
