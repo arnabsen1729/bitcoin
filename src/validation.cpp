@@ -2145,6 +2145,7 @@ bool CChainState::FlushStateToDisk(
             if (!CoinsTip().Flush())
                 return AbortNode(state, "Failed to write to coin database");
             nLastFlush = nNow;
+            TRACE4(flush, coins_flushed, nNow.count(), mode, coins_count, coins_mem_usage);
             full_flush_completed = true;
         }
     }

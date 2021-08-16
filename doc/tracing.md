@@ -115,6 +115,20 @@ details.
 
 [bpftrace argument limit]: #bpftrace-argument-limit
 
+### Context `flush`
+
+#### Tracepoint `flush:coins_flushed`
+
+Is called *after* the caches and indexes are flushed depending on the mode
+`CChainState::FlushStateToDisk` called with.
+
+Arguments passed:
+1. Time in micorseconds as `int64`
+2. Flush state mode as `uint32`. It's an enumerator class with values `0`
+   (`NONE`), `1` (`IF_NEEDED`), `2` (`PERIODIC`), `3` (`ALWAYS`)
+3. Number of coins flushed as `uint64`
+4. Size of the cache in bytes as `uint64`
+
 ## Adding tracepoints to Bitcoin Core
 
 To add a new tracepoint, `#include <util/trace.h>` in the compilation unit where
