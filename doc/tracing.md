@@ -129,6 +129,39 @@ Arguments passed:
 3. Number of coins flushed as `uint64`
 4. Size of the cache in bytes as `uint64`
 
+### Context `utxo`
+
+#### Tracepoint `utxo:coins_added`
+
+It is called *after* a new coin is added to the cache.
+
+Arguments passed:
+1. Height of the block the coin was added to as `int32`
+2. Value of the coin as `int64`
+3. If the coin is a coinbase as `uint32`
+4. Cached coins usage as `uint64`
+
+#### Tracepoint `utxo:coins_spent`
+
+It is called *after* a coin is spent.
+
+Arguments passed:
+1. Height of the block the coin was spent to, as `int32`
+2. Value of the coin as `int64`
+3. If the coin is a coinbase as `uint32`
+4. Cached coins usage as `uint64`
+
+#### Tracepoint `utxo:coins_uncached`
+
+It is called *after* the UTXO with the given outpoint is removed from the cache,
+if it is not modified.
+
+Arguments passed:
+1. Height of the block the coin was uncached, as `int32`
+2. Value of the coin as `int64`
+3. If the coin is a coinbase as `uint32`
+4. Cached coins usage as `uint64`
+
 ## Adding tracepoints to Bitcoin Core
 
 To add a new tracepoint, `#include <util/trace.h>` in the compilation unit where
