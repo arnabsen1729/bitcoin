@@ -1,0 +1,33 @@
+#!/usr/bin/env bpftrace
+
+BEGIN
+{
+  printf("Logging P2P traffic\n")
+}
+
+usdt:./src/bitcoind:utxo:coins_uncached
+{
+  $height = (uint32)arg0;
+  $value = arg1;
+  $isCoinBase = (uint32)arg2;
+  $usage = arg3;
+  printf("UNCACHE: %d %d %d %d\n", $height, $value, $isCoinBase, $usage);
+}
+
+usdt:./src/bitcoind:utxo:coins_spent
+{
+  $height = (uint32)arg0;
+  $value = arg1;
+  $isCoinBase = (uint32)arg2;
+  $usage = arg3;
+  printf("%-10s %d %d %d %d\n", "Spent", $height, $value, $isCoinBase, $usage);
+}
+
+usdt:./src/bitcoind:utxo:coins_added
+{
+  $height = (uint32)arg0;
+  $value = arg1;
+  $isCoinBase = (uint32)arg2;
+  $usage = arg3;
+  printf("%-10s %d %d %d %d\n", "Add", $height, $value, $isCoinBase, $usage);
+}

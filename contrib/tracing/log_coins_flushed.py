@@ -21,22 +21,18 @@ struct data_t
   u64 coins_mem_usage;
 };
 
-BPF_ARRAY(data_arr, struct data_t, 1);
-
 // BPF perf buffer to push the data to user space.
 BPF_PERF_OUTPUT(coins_flushed);
 
 int trace_coins_flushed(struct pt_regs *ctx) {
-  int idx = 0;
-  struct data_t *data = data_arr.lookup(&idx);
-  if (data == NULL) return 1;
+  struct data_t data = {};
 
-  bpf_usdt_readarg(1, ctx, &data->ts);
-  bpf_usdt_readarg(2, ctx, &data->mode);
-  bpf_usdt_readarg(3, ctx, &data->coins);
-  bpf_usdt_readarg(4, ctx, &data->coins_mem_usage);
+  bpf_usdt_readarg(1, ctx, &data.ts);
+  bpf_usdt_readarg(2, ctx, &data.mode);
+  bpf_usdt_readarg(3, ctx, &data.coins);
+  bpf_usdt_readarg(4, ctx, &data.coins_mem_usage);
 
-  coins_flushed.perf_submit(ctx, data, sizeof(*data));
+  coins_flushed.perf_submit(ctx, &data, sizeof(data));
   return 0;
 }
 """
@@ -61,7 +57,8 @@ def print_event(event):
 def main(bitcoind_path):
     bitcoind_with_usdts = USDT(path=str(bitcoind_path))
 
-    # attaching the trace functions defined in the BPF program to the tracepoints
+    # attaching the trace functions defined in the BPF program
+    # to the tracepoints
     bitcoind_with_usdts.enable_probe(
         probe="coins_flushed", fn_name="trace_coins_flushed")
     b = BPF(text=program, usdt_contexts=[bitcoind_with_usdts])

@@ -115,15 +115,15 @@ details.
 
 [bpftrace argument limit]: #bpftrace-argument-limit
 
-### Context `flush`
+### Context `utxocache`
 
-#### Tracepoint `flush:coins_flushed`
+#### Tracepoint `utxocache:coins_flushed`
 
 Is called *after* the caches and indexes are flushed depending on the mode
 `CChainState::FlushStateToDisk` called with.
 
 Arguments passed:
-1. Time in micorseconds as `int64`
+1. Time in microseconds as `int64`
 2. Flush state mode as `uint32`. It's an enumerator class with values `0`
    (`NONE`), `1` (`IF_NEEDED`), `2` (`PERIODIC`), `3` (`ALWAYS`)
 3. Number of coins flushed as `uint64`
@@ -133,31 +133,31 @@ Arguments passed:
 
 #### Tracepoint `utxo:coins_added`
 
-It is called *after* a new coin is added to the cache.
+It is called when a new coin is added to the UTXO cache.
 
 Arguments passed:
-1. Height of the block the coin was added to as `int32`
+1. Block height the coin was added to the UTXO-set as  `int32`
 2. Value of the coin as `int64`
 3. If the coin is a coinbase as `uint32`
 4. Cached coins usage as `uint64`
 
 #### Tracepoint `utxo:coins_spent`
 
-It is called *after* a coin is spent.
+It is called when a coin is spent from the UTXO cache.
 
 Arguments passed:
-1. Height of the block the coin was spent to, as `int32`
+1. Block height the coin was spent , as `int32`
 2. Value of the coin as `int64`
 3. If the coin is a coinbase as `uint32`
 4. Cached coins usage as `uint64`
 
 #### Tracepoint `utxo:coins_uncached`
 
-It is called *after* the UTXO with the given outpoint is removed from the cache,
+It is called when the UTXO with the given outpoint is removed from the cache,
 if it is not modified.
 
 Arguments passed:
-1. Height of the block the coin was uncached, as `int32`
+1. Block height the coin was uncached, as `int32`
 2. Value of the coin as `int64`
 3. If the coin is a coinbase as `uint32`
 4. Cached coins usage as `uint64`

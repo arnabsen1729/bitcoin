@@ -2,7 +2,6 @@
 
 import sys
 from bcc import BPF, USDT
-from bcc.utils import printb
 
 """ Example script to log details about add/spend/uncache coin events.
 utilizing USDT probes and the utxo:coins_added, utxo:coins_spent,
@@ -10,63 +9,60 @@ utxo:coins_uncached  tracepoint. """
 
 program = """
 # include <uapi/linux/ptrace.h>
+
+#define MAX_HASH_SIZE 64
+
 struct coin_data
 {
   u32 height;
+  char hash[MAX_HASH_SIZE];
   long value;
   u32 isCoinBase;
   u64 usage;
 };
-
-
-BPF_ARRAY(data_arr, struct coin_data, 1);
 
 BPF_PERF_OUTPUT(coins_added);
 BPF_PERF_OUTPUT(coins_spent);
 BPF_PERF_OUTPUT(coins_uncached);
 
 int trace_add_coin(struct pt_regs *ctx) {
-  int idx = 0;
-  struct coin_data *data = data_arr.lookup(&idx);
-  if (data == NULL) return 1;
-  bpf_usdt_readarg(1, ctx, &data->height);
-  bpf_usdt_readarg(2, ctx, &data->value);
-  bpf_usdt_readarg(3, ctx, &data->isCoinBase);
-  bpf_usdt_readarg(4, ctx, &data->usage);
-  coins_added.perf_submit(ctx, data, sizeof(*data));
+  struct coin_data data = {};
+  bpf_usdt_readarg_p(1, ctx, &data.hash, MAX_HASH_SIZE);
+  bpf_usdt_readarg(2, ctx, &data.height);
+  bpf_usdt_readarg(3, ctx, &data.value);
+  bpf_usdt_readarg(4, ctx, &data.isCoinBase);
+  bpf_usdt_readarg(5, ctx, &data.usage);
+  coins_added.perf_submit(ctx, &data, sizeof(data));
   return 0;
 }
 
 int trace_spend_coin(struct pt_regs *ctx) {
-  int idx = 0;
-  struct coin_data *data = data_arr.lookup(&idx);
-  if (data == NULL) return 1;
-  bpf_usdt_readarg(1, ctx, &data->height);
-  bpf_usdt_readarg(2, ctx, &data->value);
-  bpf_usdt_readarg(3, ctx, &data->isCoinBase);
-  bpf_usdt_readarg(4, ctx, &data->usage);
-  coins_added.perf_submit(ctx, data, sizeof(*data));
+  struct coin_data data = {};
+  bpf_usdt_readarg_p(1, ctx, &data.hash, MAX_HASH_SIZE);
+  bpf_usdt_readarg(2, ctx, &data.height);
+  bpf_usdt_readarg(3, ctx, &data.value);
+  bpf_usdt_readarg(4, ctx, &data.isCoinBase);
+  bpf_usdt_readarg(5, ctx, &data.usage);
+  coins_spent.perf_submit(ctx, &data, sizeof(data));
   return 0;
 }
 
 int trace_uncached_coin(struct pt_regs *ctx) {
-    int idx = 0;
-    struct coin_data *data = data_arr.lookup(&idx);
-    if (data == NULL) return 1;
-    bpf_usdt_readarg(1, ctx, &data->height);
-    bpf_usdt_readarg(2, ctx, &data->value);
-    bpf_usdt_readarg(3, ctx, &data->isCoinBase);
-    bpf_usdt_readarg(4, ctx, &data->usage);
-    coins_added.perf_submit(ctx, data, sizeof(*data));
+    struct coin_data data = {};
+    bpf_usdt_readarg_p(1, ctx, &data.hash, MAX_HASH_SIZE);
+    bpf_usdt_readarg(2, ctx, &data.height);
+    bpf_usdt_readarg(3, ctx, &data.value);
+    bpf_usdt_readarg(4, ctx, &data.isCoinBase);
+    bpf_usdt_readarg(5, ctx, &data.usage);
+    coins_uncached.perf_submit(ctx, &data, sizeof(data));
     return 0;
 }
 """
 
 
 def print_event(event, action):
-    print("%-7s %-10d %-15d %-10d %-10d" % (action, event.height, event.value, event.isCoinBase, event.usage))
-
-
+    print("%-68s %-10s %-10d %-15d %-10s %-10d" %
+          (event.hash.decode('ASCII'), action, event.height, event.value, "YES" if event.isCoinBase else "NO", event.usage))
 
 
 def main(bitcoind_path):
@@ -92,14 +88,12 @@ def main(bitcoind_path):
         event = b["coins_uncached"].event(data)
         print_event(event, "Uncache")
 
-
     b["coins_added"].open_perf_buffer(handle_coins_added)
     b["coins_spent"].open_perf_buffer(handle_coins_spent)
     b["coins_uncached"].open_perf_buffer(handle_coins_uncached)
 
-    print("Logging Add Coin. Ctrl-C to end...")
-    print("%-7s %-10s %-15s %-10s %-10s" % ("Event", "Height",
-                                      "Satoshis", "Coin Base", "Usage"))
+    print("Logging Add, Spend and Uncache in the UTXO set. Ctrl-C to end...")
+    print("%-68s %-10s %-10s %-15s %-10s %s"%("txHash","Action", "Height", "Satoshis", "Coin Base", "Usage" ))
     while True:
         try:
             b.perf_buffer_poll()
