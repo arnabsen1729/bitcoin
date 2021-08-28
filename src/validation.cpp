@@ -2148,12 +2148,12 @@ bool CChainState::FlushStateToDisk(
             full_flush_completed = true;
         }
         TRACE6(utxocache, flush,
-            (GetTimeMicros() - nNow.count()), // in microseconds (µs)
-            mode,
-            coins_count,
-            coins_mem_usage,
-            fFlushForPrune,
-            fDoFullFlush
+            (int64_t)(GetTimeMicros() - nNow.count()), // in microseconds (µs)
+            (u_int32_t)mode,
+            (u_int64_t)coins_count,
+            (u_int64_t)coins_mem_usage,
+            (bool)fFlushForPrune,
+            (bool)fDoFullFlush
         );
     }
     if (full_flush_completed) {

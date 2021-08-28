@@ -117,50 +117,59 @@ details.
 
 ### Context `utxocache`
 
-#### Tracepoint `utxocache:coins_flushed`
+#### Tracepoint `utxocache:flush`
 
 Is called *after* the caches and indexes are flushed depending on the mode
-`CChainState::FlushStateToDisk` called with.
+`CChainState::FlushStateToDisk` is called with.
 
 Arguments passed:
-1. Time in microseconds as `int64`
+1. Duration in microseconds as `int64`
 2. Flush state mode as `uint32`. It's an enumerator class with values `0`
    (`NONE`), `1` (`IF_NEEDED`), `2` (`PERIODIC`), `3` (`ALWAYS`)
 3. Number of coins flushed as `uint64`
-4. Size of the cache in bytes as `uint64`
+4. Memory usage in bytes as `uint64`
+5. If the flush was pruned as `bool`
+6. If it was full flush as `bool`
 
-### Context `utxo`
-
-#### Tracepoint `utxo:coins_added`
+#### Tracepoint `utxocache:add`
 
 It is called when a new coin is added to the UTXO cache.
 
 Arguments passed:
-1. Block height the coin was added to the UTXO-set as  `int32`
-2. Value of the coin as `int64`
-3. If the coin is a coinbase as `uint32`
-4. Cached coins usage as `uint64`
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. The output index as `uint32`
+3. Block height the coin was added to the UTXO-set as  `uint32`
+4. Value of the coin as `int64`
+5. If the coin is a coinbase as `uint`
+6. Cached coins usage as `uint64`
+7. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
 
-#### Tracepoint `utxo:coins_spent`
+#### Tracepoint `utxocache:spent`
 
 It is called when a coin is spent from the UTXO cache.
 
 Arguments passed:
-1. Block height the coin was spent , as `int32`
-2. Value of the coin as `int64`
-3. If the coin is a coinbase as `uint32`
-4. Cached coins usage as `uint64`
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. The output index as `uint32`
+3. Block height the coin was spent , as `uint32`
+4. Value of the coin as `int64`
+5. If the coin is a coinbase as `uint`
+6. Cached coins usage as `uint64`
+7. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
 
-#### Tracepoint `utxo:coins_uncached`
+#### Tracepoint `utxocache:uncache`
 
 It is called when the UTXO with the given outpoint is removed from the cache,
 if it is not modified.
 
 Arguments passed:
-1. Block height the coin was uncached, as `int32`
-2. Value of the coin as `int64`
-3. If the coin is a coinbase as `uint32`
-4. Cached coins usage as `uint64`
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. The output index as `uint32`
+3. Block height the coin was uncached, as `uint32`
+4. Value of the coin as `int64`
+5. If the coin is a coinbase as `uint`
+6. Cached coins usage as `uint64`
+7. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
 
 ## Adding tracepoints to Bitcoin Core
 

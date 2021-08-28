@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-import ctypes as ct
+import ctypes
 from bcc import BPF, USDT
 
 """ Example script to log details about coins flushed by the Bitcoin client
@@ -16,9 +16,9 @@ program = """
 
 struct data_t
 {
-  long ts;
+  u64 duration;
   u32 mode;
-  u64 coins;
+  u64 coins_count;
   u64 coins_mem_usage;
   bool is_flush_prune;
   bool is_full_flush;
@@ -29,10 +29,9 @@ BPF_PERF_OUTPUT(flush);
 
 int trace_flush(struct pt_regs *ctx) {
   struct data_t data = {};
-
-  bpf_usdt_readarg(1, ctx, &data.ts);
+  bpf_usdt_readarg(1, ctx, &data.duration);
   bpf_usdt_readarg(2, ctx, &data.mode);
-  bpf_usdt_readarg(3, ctx, &data.coins);
+  bpf_usdt_readarg(3, ctx, &data.coins_count);
   bpf_usdt_readarg(4, ctx, &data.coins_mem_usage);
   bpf_usdt_readarg(5, ctx, &data.is_flush_prune);
   bpf_usdt_readarg(5, ctx, &data.is_full_flush);
@@ -41,7 +40,6 @@ int trace_flush(struct pt_regs *ctx) {
 }
 """
 
-
 FLUSH_MODES = [
     'NONE',
     'IF_NEEDED',
@@ -49,23 +47,24 @@ FLUSH_MODES = [
     'ALWAYS'
 ]
 
+
 # define output data structure in Python
-class Data(ct.Structure):
+class Data(ctypes.Structure):
     _fields_ = [
-        ("ts", ct.c_long),
-        ("mode", ct.c_uint32),
-        ("coins", ct.c_uint64),
-        ("coins_mem_usage", ct.c_uint64),
-        ("is_flush_prune", ct.c_bool),
-        ("is_full_flush", ct.c_bool)
+        ("duration", ctypes.c_uint64),
+        ("mode", ctypes.c_uint32),
+        ("coins_count", ctypes.c_uint64),
+        ("coins_mem_usage", ctypes.c_uint64),
+        ("is_flush_prune", ctypes.c_bool),
+        ("is_full_flush", ctypes.c_bool)
     ]
 
 
 def print_event(event):
-    print("%-10d %-10s %-10d %-15s %-8s %-8s" % (
-        event.ts,
+    print("%-15d %-10s %-15d %-15s %-8s %-8s" % (
+        event.duration,
         FLUSH_MODES[event.mode],
-        event.coins,
+        event.coins_count,
         "%.2f kB" % (event.coins_mem_usage/1000),
         event.is_flush_prune,
         event.is_full_flush
@@ -85,13 +84,14 @@ def main(bitcoind_path):
         """ Coins Flush handler.
 
           Called each time coin caches and indexes are flushed."""
-        event = ct.cast(data, ct.POINTER(Data)).contents
+        event = ctypes.cast(data, ctypes.POINTER(Data)).contents
         print_event(event)
 
     b["flush"].open_perf_buffer(handle_flush)
     print("Logging Coin flushes. Ctrl-C to end...")
-    print("%-10s %-10s %-10s %-15s %-8s %-8s" % ("Duration", "Mode",
-                                                 "Coins", "Memory Usage", "Prune", "Full Flush"))
+    print("%-15s %-10s %-15s %-15s %-8s %-8s" % ("Duration (µs)", "Mode",
+                                                 "Coins Count", "Memory Usage",
+                                                 "Prune", "Full Flush"))
 
     while True:
         try:
