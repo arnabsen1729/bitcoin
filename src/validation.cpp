@@ -2145,14 +2145,16 @@ bool CChainState::FlushStateToDisk(
             if (!CoinsTip().Flush())
                 return AbortNode(state, "Failed to write to coin database");
             nLastFlush = nNow;
-            TRACE4(utxocache, coins_flushed,
-                nNow.count(),
-                mode,
-                coins_count,
-                coins_mem_usage
-            );
             full_flush_completed = true;
         }
+        TRACE6(utxocache, flush,
+            (GetTimeMicros() - nNow.count()), // in microseconds (µs)
+            mode,
+            coins_count,
+            coins_mem_usage,
+            fFlushForPrune,
+            fDoFullFlush
+        );
     }
     if (full_flush_completed) {
         // Update best block in wallet (so we can detect restored wallets).

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import sys
+import ctypes as ct
 from bcc import BPF, USDT
 
 """ Example script to log details about coins flushed by the Bitcoin client
-utilizing USDT probes and the flush:coins_flushed tracepoint. """
+utilizing USDT probes and the flush:flush tracepoint. """
 
-# USAGE:  ./contrib/tracing/log_coins_flushed.py path/to/bitcoind
+# USAGE:  ./contrib/tracing/log_flush.py path/to/bitcoind
 
 # BCC: The C program to be compiled to an eBPF program (by BCC) and loaded into
 # a sandboxed Linux kernel VM.
@@ -19,20 +20,23 @@ struct data_t
   u32 mode;
   u64 coins;
   u64 coins_mem_usage;
+  bool is_flush_prune;
+  bool is_full_flush;
 };
 
 // BPF perf buffer to push the data to user space.
-BPF_PERF_OUTPUT(coins_flushed);
+BPF_PERF_OUTPUT(flush);
 
-int trace_coins_flushed(struct pt_regs *ctx) {
+int trace_flush(struct pt_regs *ctx) {
   struct data_t data = {};
 
   bpf_usdt_readarg(1, ctx, &data.ts);
   bpf_usdt_readarg(2, ctx, &data.mode);
   bpf_usdt_readarg(3, ctx, &data.coins);
   bpf_usdt_readarg(4, ctx, &data.coins_mem_usage);
-
-  coins_flushed.perf_submit(ctx, &data, sizeof(data));
+  bpf_usdt_readarg(5, ctx, &data.is_flush_prune);
+  bpf_usdt_readarg(5, ctx, &data.is_full_flush);
+  flush.perf_submit(ctx, &data, sizeof(data));
   return 0;
 }
 """
@@ -45,12 +49,26 @@ FLUSH_MODES = [
     'ALWAYS'
 ]
 
+# define output data structure in Python
+class Data(ct.Structure):
+    _fields_ = [
+        ("ts", ct.c_long),
+        ("mode", ct.c_uint32),
+        ("coins", ct.c_uint64),
+        ("coins_mem_usage", ct.c_uint64),
+        ("is_flush_prune", ct.c_bool),
+        ("is_full_flush", ct.c_bool)
+    ]
+
 
 def print_event(event):
-    print("%-10s %-10d %-20s" % (
+    print("%-10d %-10s %-10d %-15s %-8s %-8s" % (
+        event.ts,
         FLUSH_MODES[event.mode],
         event.coins,
         "%.2f kB" % (event.coins_mem_usage/1000),
+        event.is_flush_prune,
+        event.is_full_flush
     ))
 
 
@@ -60,20 +78,21 @@ def main(bitcoind_path):
     # attaching the trace functions defined in the BPF program
     # to the tracepoints
     bitcoind_with_usdts.enable_probe(
-        probe="coins_flushed", fn_name="trace_coins_flushed")
+        probe="flush", fn_name="trace_flush")
     b = BPF(text=program, usdt_contexts=[bitcoind_with_usdts])
 
-    def handle_coins_flushed(_, data, size):
+    def handle_flush(_, data, size):
         """ Coins Flush handler.
 
           Called each time coin caches and indexes are flushed."""
-        event = b["coins_flushed"].event(data)
+        event = ct.cast(data, ct.POINTER(Data)).contents
         print_event(event)
 
-    b["coins_flushed"].open_perf_buffer(handle_coins_flushed)
+    b["flush"].open_perf_buffer(handle_flush)
     print("Logging Coin flushes. Ctrl-C to end...")
-    print("%-10s %-10s %-20s" % ("Mode",
-                                 "Coins", "Coin Memory Usage"))
+    print("%-10s %-10s %-10s %-15s %-8s %-8s" % ("Duration", "Mode",
+                                                 "Coins", "Memory Usage", "Prune", "Full Flush"))
+
     while True:
         try:
             b.perf_buffer_poll()
