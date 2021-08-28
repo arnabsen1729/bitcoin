@@ -96,12 +96,13 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
     it->second.coin = std::move(coin);
     it->second.flags |= CCoinsCacheEntry::DIRTY | (fresh ? CCoinsCacheEntry::FRESH : 0);
     cachedCoinsUsage += it->second.coin.DynamicMemoryUsage();
-    TRACE5(utxo, coins_added,
+    TRACE6(utxocache, add,
         outpoint.hash.ToString().c_str(),
+        (uint32_t)outpoint.n,
         (uint32_t)coin.nHeight,
         (int64_t)coin.out.nValue,
         (uint)coin.fCoinBase,
-        cachedCoinsUsage
+        (uint64_t)cachedCoinsUsage
     );
 }
 
@@ -129,12 +130,13 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {
     if (it == cacheCoins.end()) return false;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
 
-    TRACE5(utxo, coins_spent,
+    TRACE6(utxocache, spent,
         outpoint.hash.ToString().c_str(),
+        (uint32_t)outpoint.n,
         (uint32_t)it->second.coin.nHeight,
         (int64_t)it->second.coin.out.nValue,
         (uint)it->second.coin.fCoinBase,
-        cachedCoinsUsage
+        (uint64_t)cachedCoinsUsage
     );
 
     if (moveout) {
@@ -250,12 +252,13 @@ void CCoinsViewCache::Uncache(const COutPoint& hash)
     if (it != cacheCoins.end() && it->second.flags == 0) {
         cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
 
-        TRACE5(utxo, coins_uncached,
+        TRACE6(utxocache, uncache,
             hash.hash.ToString().c_str(),
+            (uint32_t)hash.n,
             (uint32_t)it->second.coin.nHeight,
             (int64_t)it->second.coin.out.nValue,
             (uint)it->second.coin.fCoinBase,
-            cachedCoinsUsage
+            (uint64_t)cachedCoinsUsage
         );
 
         cacheCoins.erase(it);
