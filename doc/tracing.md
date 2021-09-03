@@ -131,6 +131,48 @@ Arguments passed:
 5. If the flush was pruned as `bool`
 6. If it was full flush as `bool`
 
+#### Tracepoint `utxocache:add`
+
+It is called when a new coin is added to the UTXO cache.
+
+Arguments passed:
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. Output index as `uint32`
+3. Block height the coin was added to the UTXO-set as  `uint32`
+4. Value of the coin as `int64`
+5. Cached coins usage as `uint64`
+6. Cached coins count as `uint64`
+7. If the coin is a coinbase as `bool`
+8. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
+
+#### Tracepoint `utxocache:spent`
+
+It is called when a coin is spent from the UTXO cache.
+
+Arguments passed:
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. Output index as `uint32`
+3. Block height the coin was spent, as `uint32`
+4. Value of the coin as `int64`
+5. Cached coins usage as `uint64`
+6. Cached coins count as `uint64`
+7. If the coin is a coinbase as `bool`
+8. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
+
+#### Tracepoint `utxocache:uncache`
+
+It is called when the UTXO with the given outpoint is removed from the cache.
+
+Arguments passed:
+1. Transaction ID (hash) as `pointer to C-style String` (64 characters)
+2. Output index as `uint32`
+3. Block height the coin was uncached, as `uint32`
+4. Value of the coin as `int64`
+5. Cached coins usage as `uint64`
+6. Cached coins count as `uint64`
+7. If the coin is a coinbase as `bool`
+8. Transaction hash as `pointer to unsigned chars` (i.e. 32 bytes in little-endian)
+
 ## Adding tracepoints to Bitcoin Core
 
 To add a new tracepoint, `#include <util/trace.h>` in the compilation unit where
